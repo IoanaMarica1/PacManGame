@@ -27,5 +27,6 @@ public class Main {
         // KeyListener pe pacmanGame, tastatura poate să nu fie „ascultată”
         // de această componentă.
         frame.setVisible(true);
+        pacmanGame.requestFocusInWindow();
     }
 }

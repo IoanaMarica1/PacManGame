@@ -1,9 +1,7 @@
 import java.awt.*;
 import java.awt.event.*;
-import java.util.HashSet;
-import java.util.Random;
-import javax.swing.*;
-import java.awt.FontMetrics;
+import java.util.*;
+import javax.swing.*; // javax.swing.Timer inclus aici
 
 enum GameState {
     START_MENU, PLAYING, GAME_OVER_MENU, HIGH_SCORES
@@ -48,10 +46,22 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         void updateVelocity() {
             switch (direction) {
-                case 'u' -> { velocityX = 0; velocityY = -tileSize / 4; }
-                case 'd' -> { velocityX = 0; velocityY = tileSize / 4; }
-                case 'l' -> { velocityX = -tileSize / 4; velocityY = 0; }
-                case 'r' -> { velocityX = tileSize / 4; velocityY = 0; }
+                case 'u' -> {
+                    velocityX = 0;
+                    velocityY = -tileSize / 4;
+                }
+                case 'd' -> {
+                    velocityX = 0;
+                    velocityY = tileSize / 4;
+                }
+                case 'l' -> {
+                    velocityX = -tileSize / 4;
+                    velocityY = 0;
+                }
+                case 'r' -> {
+                    velocityX = tileSize / 4;
+                    velocityY = 0;
+                }
             }
         }
 
@@ -123,8 +133,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     private HashSet<Block> walls, foods, ghosts;
     private Block pacman;
-    private Timer gameLoop;
-    private char[] directions = {'u','d','l','r'};
+    private javax.swing.Timer gameLoop; // <-- Timer corect
+    private char[] directions = {'u', 'd', 'l', 'r'};
     private Random random = new Random();
     private int score = 0, lives = 3;
     private boolean gameover = false;
@@ -132,6 +142,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     private GameState state = GameState.START_MENU;
     private int selectedOption = 0;
     private int currentLevel = 0;
+
+    private ArrayList<Integer> highScores = new ArrayList<>();
+    private final int MAX_HIGH_SCORES = 5;
 
     public PacMan() {
         setPreferredSize(new Dimension(bordWidth, bordHeight));
@@ -151,8 +164,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         pacmanRightImage = new ImageIcon(getClass().getResource("./pacmanRight.png")).getImage();
 
         loadMap();
-
-        gameLoop = new Timer(50, this);
+        gameLoop = new javax.swing.Timer(50, this);
     }
 
     private void loadMap() {
@@ -181,10 +193,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        // Initialize ghost directions
-        for (Block ghost : ghosts) {
-            ghost.updateDirection(directions[random.nextInt(4)]);
-        }
+        for (Block ghost : ghosts) ghost.updateDirection(directions[random.nextInt(4)]);
     }
 
     @Override
@@ -197,29 +206,18 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         switch (state) {
             case START_MENU -> drawStartMenu(g);
             case GAME_OVER_MENU -> drawGameOverMenu(g);
-            case HIGH_SCORES -> {
-                g.setColor(Color.WHITE);
-                g.setFont(new Font("Arial", Font.BOLD, 30));
-                g.drawString("Top 5 Scores", bordWidth / 2 - 100, bordHeight / 4);
-                g.drawString("Press any key to Menu", bordWidth / 2 - 150, bordHeight - 50);
-            }
+            case HIGH_SCORES -> drawHighScores(g);
             case PLAYING -> drawGame(g);
         }
     }
 
     private void drawGame(Graphics g) {
-        // Walls
         for (Block wall : walls) g.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height, null);
-
-        // Foods
         g.setColor(Color.WHITE);
         for (Block food : foods) g.fillRect(food.x, food.y, food.width, food.height);
-
-        // Pacman & Ghosts
         g.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height, null);
         for (Block ghost : ghosts) g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
 
-        // Score & Lives & Level
         g.setFont(new Font("Arial", Font.BOLD, 18));
         g.setColor(Color.WHITE);
         g.drawString("Lives: x" + lives + " Score: " + score + " Level: " + (currentLevel + 1), tileSize / 2, tileSize / 2);
@@ -235,17 +233,13 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         g.setFont(new Font("Arial", Font.BOLD, 30));
         fm = g.getFontMetrics();
 
-        int optionY = bordHeight / 2;
         String[] options = {"Start Game", "See Top 5 Scores"};
-
+        int optionY = bordHeight / 2;
         for (int i = 0; i < options.length; i++) {
             int optionX = (bordWidth - fm.stringWidth(options[i])) / 2;
-            if (i == selectedOption) {
-                g.setColor(Color.YELLOW);
-                g.drawString(">", optionX - 30, optionY + i * 50);
-            }
-            g.setColor(Color.WHITE);
+            g.setColor(i == selectedOption ? Color.YELLOW : Color.WHITE);
             g.drawString(options[i], optionX, optionY + i * 50);
+            if (i == selectedOption) g.drawString(">", optionX - 30, optionY + i * 50);
         }
     }
 
@@ -263,11 +257,26 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         int scoreX = (bordWidth - fm.stringWidth(scoreText)) / 2;
         g.drawString(scoreText, scoreX, bordHeight / 3 + 60);
 
-        String promptText = "Press ENTER to Menu";
         g.setFont(new Font("Arial", Font.PLAIN, 20));
         fm = g.getFontMetrics();
+        String promptText = "Press ENTER to Menu";
         int promptX = (bordWidth - fm.stringWidth(promptText)) / 2;
         g.drawString(promptText, promptX, bordHeight / 3 + 120);
+    }
+
+    private void drawHighScores(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 30));
+        g.drawString("Top 5 Scores", bordWidth / 2 - 100, bordHeight / 4);
+
+        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        for (int i = 0; i < highScores.size(); i++) {
+            String text = (i + 1) + ". " + highScores.get(i);
+            g.drawString(text, bordWidth / 2 - 50, bordHeight / 4 + 50 + i * 30);
+        }
+
+        g.setFont(new Font("Arial", Font.PLAIN, 20));
+        g.drawString("Press any key to Menu", bordWidth / 2 - 120, bordHeight - 50);
     }
 
     private void move() {
@@ -289,7 +298,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
             if (collision(ghost, pacman)) {
                 lives--;
                 if (lives == 0) {
-                    gameover = true;
+                    endGame();
                     return;
                 }
                 resetPositions();
@@ -321,10 +330,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 loadMap();
                 resetPositions();
             } else {
-                gameover = true;
-                gameLoop.stop();
+                endGame();
             }
         }
+    }
+
+    private void endGame() {
+        gameover = true;
+        gameLoop.stop(); // javax.swing.Timer stop()
+        highScores.add(score);
+        highScores.sort(Collections.reverseOrder());
+        if (highScores.size() > MAX_HIGH_SCORES)
+            highScores = new ArrayList<>(highScores.subList(0, MAX_HIGH_SCORES));
+        state = GameState.GAME_OVER_MENU;
     }
 
     private boolean collision(Block a, Block b) {
@@ -352,10 +370,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (state == GameState.PLAYING) {
-            move();
-            if (gameover) state = GameState.GAME_OVER_MENU;
-        }
+        if (state == GameState.PLAYING) move();
         repaint();
     }
 
@@ -365,21 +380,29 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         switch (state) {
             case START_MENU -> {
-                if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_DOWN) selectedOption = 1 - selectedOption;
-                else if (keyCode == KeyEvent.VK_ENTER) {
-                    if (selectedOption == 0) {
+                if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_DOWN) {
+                    selectedOption = 1 - selectedOption; // comutare între 0 și 1
+                } else if (keyCode == KeyEvent.VK_ENTER) {
+                    if (selectedOption == 0) { // Start Game
                         resetGame();
                         state = GameState.PLAYING;
                         gameLoop.start();
-                    } else state = GameState.HIGH_SCORES;
+                    } else { // See Top 5 Scores
+                        state = GameState.HIGH_SCORES;
+                    }
                 }
             }
 
             case GAME_OVER_MENU -> {
-                if (keyCode == KeyEvent.VK_ENTER) state = GameState.START_MENU;
+                if (keyCode == KeyEvent.VK_ENTER) {
+                    state = GameState.START_MENU;
+                }
             }
 
-            case HIGH_SCORES -> state = GameState.START_MENU;
+            case HIGH_SCORES -> {
+                // orice tastă te duce înapoi la meniu
+                state = GameState.START_MENU;
+            }
 
             case PLAYING -> {
                 if (keyCode == KeyEvent.VK_UP) pacman.updateDirection('u');
@@ -395,10 +418,16 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
                 };
             }
         }
+
+        repaint();
     }
 
     @Override
-    public void keyReleased(KeyEvent e) {}
+    public void keyReleased(KeyEvent e) {
+    }
+
     @Override
-    public void keyTyped(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {
+    }
 }
+
